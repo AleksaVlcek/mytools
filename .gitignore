@@ -1,0 +1,6 @@
+bin/
+build/
+*.o
+bench/*.dat
+CLAUDE.md
+.claude/
