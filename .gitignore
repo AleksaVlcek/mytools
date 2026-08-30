@@ -4,3 +4,4 @@ build/
 bench/*.dat
 CLAUDE.md
 .claude/
+tests/data/*.bin
