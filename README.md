@@ -5,15 +5,37 @@ benchmarks against GNU coreutils.
 
 ## Build
 
+Requires: `gcc` (or any C99 compiler), `make`, a POSIX environment
+(Linux, macOS, WSL).
+
+```bash
+make
+make debug
+make clean
+```
+
 ## Usage
+
+Reads standard input and prints the line count — like `wc -l`.
+
+```bash
+./bin/mywc < file.txt
+cat file.txt | ./bin/mywc
+```
 
 ## Limitations
 
+- Reads only standard input — does not accept file names or flags.
+Only `wc -l` behavior is supported; `-w` and `-c` are coming.
+- Counts `\n` characters, not "lines". A file without a trailing newline gives a count one less — same as GNU `wc`, per the POSIX definition of a line.
+- Counts bytes, not UTF-8 characters. Equivalent to `wc -c`, not `wc -m`.
+- No buffer processing optimization — counting is byte by byte. See [Benchmark](#benchmark).
+
 ## Benchmark
 
-File: 76 MB (10,000,000 lines, `seq 1 10000000`)
-Measurement: best of 6 runs, page cache warm
-Machine: WSL2 Ubuntu 24.04
+- File: 76 MB (10,000,000 lines, `seq 1 10000000`)
+- Measurement: best of 6 runs, page cache warm
+- Machine: WSL2 Ubuntu 24.04
 
 | version        | real   | user   | sys    |
 |----------------|--------|--------|--------|
@@ -21,7 +43,9 @@ Machine: WSL2 Ubuntu 24.04
 | GNU wc 9.4     | 0.013s | 0.004s | 0.009s |
 
 The cache is warm because a first measurement would be measuring disk while the second would measure RAM. The measurements show that my sys time and GNU's are approximately equal, meaning the buffering works and the number of system calls is the same.
-The main difference is in user time, which means the main cause of the time difference is processing, not data delivery. GNU coreutils 9.4 is faster because it uses AVX2 instructions for wc -l (confirmed with wc --debug) which process a 32-byte block of data at once, while I call a function for every single byte in the buffer.
+
+The main difference is in user time, which means the main cause of the time difference is processing, not data delivery. GNU coreutils 9.4 is faster because it uses AVX2 instructions for `wc -l` (confirmed with `wc --debug`) which process a 32-byte block of data at once, while I call a function for every single byte in the buffer.
+
 The plan is to replace the byte-by-byte loop with memchr over the whole buffer and measure again. I expect a speedup because memchr in glibc is SIMD-optimized.
 
 ### Effect of buffer size

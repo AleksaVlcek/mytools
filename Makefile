@@ -7,6 +7,10 @@ bin/mywc: src/wc.c include/bufio.h src/bufio.c
 	mkdir -p bin
 	$(CC) $(CFLAGS) src/wc.c src/bufio.c -o bin/mywc
 
+debug: src/wc.c include/bufio.h src/bufio.c
+	mkdir -p bin
+	$(CC) $(CFLAGS) src/wc.c src/bufio.c -g -O0 -fsanitize=address,undefined -o bin/mywc-debug
+
 clean:
 	rm -rf bin build
 
