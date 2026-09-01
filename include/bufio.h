@@ -18,4 +18,6 @@ void bufio_init(Bufio *b, int fd); // initializes the buffer for reading from fi
 
 int bufio_next_byte(Bufio *b); // returns byte 0-255, or BUFIO_EOF on end of file
 
+int bufio_error(Bufio *b); // returns errno value if an error occurred during reading, or 0 if no error occurred
+
 #endif // BUFIO_H

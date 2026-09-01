@@ -1,9 +1,6 @@
 #include "bufio.h"
 #include <unistd.h>
 #include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 void bufio_init(Bufio *b, int fd) {
     b->fd = fd;
@@ -28,18 +25,22 @@ static void bufio_fill(Bufio *b) {
         b->pos = 0;
     }
     else {                    // Error
-        b->err = 1;
-        fprintf(stderr, "Error reading from file descriptor %d: %s\n", b->fd, strerror(errno));
-        exit(1);
+        b->err = errno;
+        b->len = 0;
+        b->pos = 0;
     }
 }
 
 int bufio_next_byte(Bufio *b) {
     while (b->pos == b->len) {
-        if (b->eof) {
-            return BUFIO_EOF; // Return EOF on end of file
+        if (b->eof || b->err) {
+            return BUFIO_EOF; // Return EOF on end of file and on error
         }
         bufio_fill(b);
     }
     return b->buf[b->pos++];
+}
+
+int bufio_error(Bufio *b) {
+    return b->err;
 }
