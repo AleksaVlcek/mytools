@@ -16,17 +16,30 @@ make clean
 
 ## Usage
 
-Reads standard input and prints the line count — like `wc -l`.
+Reads standard input and prints the line count.
 
 ```bash
 ./bin/mywc < file.txt
 cat file.txt | ./bin/mywc
 ```
 
+The command line is parsed in full: `-l`, `-w` and `-c`, bundled forms such
+as `-lw`, `--` to end the options, `-` as a name for standard input, and file
+operands. Only line counting is wired up so far, so every accepted flag
+prints the same number and file operands are read but not opened.
+
+A bad option is reported on stderr and exits with status 1, matching `wc`:
+
+```bash
+$ ./bin/mywc -x
+./bin/mywc: invalid option -- 'x'
+usage: ./bin/mywc [-lwc] [file...]
+```
+
 ## Limitations
 
-- Reads only standard input — does not accept file names or flags.
-Only `wc -l` behavior is supported; `-w` and `-c` are coming.
+- Only line counting is implemented. `-w` and `-c` are accepted but have no effect yet, and file operands are parsed but never opened — input always comes from standard input.
+- Options must come before file names. The first operand ends the options, so `mywc file -l` treats `-l` as a second file name. GNU `wc` permutes its arguments and would apply the flag; this follows the POSIX utility syntax guideline instead.
 - Counts `\n` characters, not "lines". A file without a trailing newline gives a count one less — same as GNU `wc`, per the POSIX definition of a line.
 - Counts bytes, not UTF-8 characters. Equivalent to `wc -c`, not `wc -m`.
 - No buffer processing optimization — counting is byte by byte. See [Benchmark](#benchmark).

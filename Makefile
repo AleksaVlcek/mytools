@@ -5,7 +5,7 @@ DBGFLAGS = -g -O0 -fsanitize=address,undefined
 
 BUILD = build
 TOOLS = wc
-COMMON = bufio util
+COMMON = bufio util args
 
 COMMON_O = $(COMMON:%=$(BUILD)/%.o)
 BINS = $(TOOLS:%=bin/my%)
