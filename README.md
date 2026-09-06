@@ -9,42 +9,59 @@ Requires: `gcc` (or any C99 compiler), `make`, a POSIX environment
 (Linux, macOS, WSL).
 
 ```bash
-make
-make debug
+make          # bin/mywc
+make debug    # bin/debug/mywc, built with ASan and UBSan
 make clean
 ```
 
 ## Usage
 
-Reads standard input and prints the line count.
-
 ```bash
-./bin/mywc < file.txt
-cat file.txt | ./bin/mywc
+./bin/mywc [-l] [-w] [-c] [file...]
 ```
 
-The command line is parsed in full: `-l`, `-w` and `-c`, bundled forms such
-as `-lw`, `--` to end the options, `-` as a name for standard input, and file
-operands. Only line counting is wired up so far, so every accepted flag
-prints the same number and file operands are read but not opened.
+Counts lines, words and bytes. With no flag it prints all three; the columns
+always come in that order, whatever order the flags were given in. With no
+file operand it reads standard input, and `-` as an operand means standard
+input as well. `--` ends the options, so a file whose name starts with a dash
+can be reached with `mywc -l -- -weird`.
 
-A bad option is reported on stderr and exits with status 1, matching `wc`:
+Several files each get a row, plus a `total` row, with the columns aligned:
 
 ```bash
-$ ./bin/mywc -x
-./bin/mywc: invalid option -- 'x'
-usage: ./bin/mywc [-lwc] [file...]
+$ ./bin/mywc -l tests/data/normal.txt tests/data/binary.bin
+     3 tests/data/normal.txt
+   386 tests/data/binary.bin
+   389 total
 ```
+
+A file that cannot be read is reported on stderr, the rest are still counted,
+and the exit status is 1:
+
+```bash
+$ ./bin/mywc -l nema_me tests/data/normal.txt; echo $?
+./bin/mywc: nema_me: No such file or directory
+3 tests/data/normal.txt
+3 total
+1
+```
+
+An unknown option prints the reason and the usage line and also exits 1.
 
 ## Limitations
 
-- Only line counting is implemented. `-w` and `-c` are accepted but have no effect yet, and file operands are parsed but never opened — input always comes from standard input.
 - Options must come before file names. The first operand ends the options, so `mywc file -l` treats `-l` as a second file name. GNU `wc` permutes its arguments and would apply the flag; this follows the POSIX utility syntax guideline instead.
+- Words are counted over bytes: a word is a run of bytes that `isspace()` rejects. GNU `wc` decodes the input in the current locale and skips bytes that do not form a character, so the two disagree on input that is not text — 2244 words against GNU's 2156 on `tests/data/binary.bin`. On text they agree.
 - Counts `\n` characters, not "lines". A file without a trailing newline gives a count one less — same as GNU `wc`, per the POSIX definition of a line.
-- Counts bytes, not UTF-8 characters. Equivalent to `wc -c`, not `wc -m`.
+- Counts bytes, not UTF-8 characters. `-c` matches `wc -c`; there is no `-m`.
+- `-c` always reads the whole input. GNU takes the size from `fstat` when the input is a regular file and never reads it, which is why `wc -c` on a large file returns instantly.
 - No buffer processing optimization — counting is byte by byte. See [Benchmark](#benchmark).
 
 ## Benchmark
+
+Measured when `mywc` only counted lines from standard input. Counting words
+and bytes adds work per byte, so these numbers are a floor rather than the
+current figure; they will be taken again alongside the `memchr` rewrite.
 
 - File: 76 MB (10,000,000 lines, `seq 1 10000000`)
 - Measurement: best of 6 runs, page cache warm
