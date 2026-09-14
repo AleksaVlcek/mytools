@@ -31,8 +31,8 @@ Several files each get a row, plus a `total` row, with the columns aligned:
 ```bash
 $ ./bin/mywc -l tests/data/normal.txt tests/data/binary.bin
      3 tests/data/normal.txt
-   386 tests/data/binary.bin
-   389 total
+   393 tests/data/binary.bin
+   396 total
 ```
 
 A file that cannot be read is reported on stderr, the rest are still counted,
@@ -51,7 +51,7 @@ An unknown option prints the reason and the usage line and also exits 1.
 ## Limitations
 
 - Options must come before file names. The first operand ends the options, so `mywc file -l` treats `-l` as a second file name. GNU `wc` permutes its arguments and would apply the flag; this follows the POSIX utility syntax guideline instead.
-- Words are counted over bytes: a word is a run of bytes that `isspace()` rejects. GNU `wc` decodes the input in the current locale and skips bytes that do not form a character, so the two disagree on input that is not text — 2244 words against GNU's 2156 on `tests/data/binary.bin`. On text they agree.
+- Words are counted over bytes: a word is a run of bytes that `isspace()` rejects, so only ASCII whitespace separates words. GNU `wc` decodes the input in the current locale, so in a UTF-8 locale it also splits on Unicode spaces such as U+00A0 and U+2003, and its count on input that is not text depends on the locale. Measured with GNU coreutils 9.11 on `tests/data/binary.bin`: 2279 words from `mywc`, 2279 from `wc` under `en_US.UTF-8`, 2658 under `LC_ALL=C`. On plain ASCII text they agree.
 - Counts `\n` characters, not "lines". A file without a trailing newline gives a count one less — same as GNU `wc`, per the POSIX definition of a line.
 - Counts bytes, not UTF-8 characters. `-c` matches `wc -c`; there is no `-m`.
 - `-c` always reads the whole input. GNU takes the size from `fstat` when the input is a regular file and never reads it, which is why `wc -c` on a large file returns instantly.
